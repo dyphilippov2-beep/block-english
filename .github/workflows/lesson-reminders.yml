@@ -1,0 +1,41 @@
+# Напоминания пройти урок английского в Telegram: каждый день в 16:00 и 19:00.
+# Запуск каждый час, скрипт сам проверяет местное время (REMIND_TZ), поэтому
+# часовой пояс меняется переменной, без правки расписания.
+# Настройка: reminders/README.md.
+name: Lesson reminders
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Что сделать"
+        type: choice
+        options: [test, chats]
+        default: test
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+      REMIND_TZ: ${{ vars.REMIND_TZ || 'Asia/Yekaterinburg' }}
+      REMIND_HOURS: ${{ vars.REMIND_HOURS || '16,19' }}
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Send reminder
+        run: |
+          case "${{ github.event.inputs.command }}" in
+            test)  python reminders/telegram_remind.py --force ;;
+            chats) python reminders/telegram_remind.py chats ;;
+            *)     python reminders/telegram_remind.py ;;
+          esac
