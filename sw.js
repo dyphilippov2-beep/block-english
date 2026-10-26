@@ -1,6 +1,6 @@
 // Block English — офлайн-режим.
 // С интернетом берёт свежую версию с сервера (и сохраняет её), без интернета — из памяти телефона.
-const CACHE = "blockenglish-v4";
+const CACHE = "blockenglish-v5";
 const FILES = ["./", "./index.html", "./icon.png"];
 
 self.addEventListener("install", e => {
