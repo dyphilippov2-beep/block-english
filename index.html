@@ -680,6 +680,13 @@ function parent(){
       <div class="gap"></div><button class="btn" id="sv">💾 Сохранить</button>
     </div><div class="gap"></div>
     <div class="panel">
+      <div style="font-weight:800">📦 Перенос прогресса</div>
+      <div style="color:var(--muted);font-size:14px;margin:6px 0 10px">Уроки, блоки, алмазы и мир. На старом телефоне или адресе нажми «Скопировать код», на новом вставь его и нажми «Загрузить».</div>
+      <button class="btn small blue" id="exCopy">📋 Скопировать код прогресса</button>
+      <label>Код прогресса</label><input id="imCode" autocomplete="off">
+      <div class="gap"></div><button class="btn small gold" id="imLoad">📥 Загрузить</button>
+    </div><div class="gap"></div>
+    <div class="panel">
       <div style="font-weight:800">🔔 Напоминания об уроке</div>
       <div style="color:var(--muted);font-size:14px;margin:6px 0 10px">Каждый день в 16:00 и 19:00 на этот телефон придёт напоминание. Включи на телефоне Никиты и на своём.</div>
       <div id="pushBox"></div>
@@ -694,8 +701,19 @@ function parent(){
   $("#sv").onclick=()=>{S.cfg.CHILD_NAME=$("#cn").value.trim()||CONFIG.CHILD_NAME;S.cfg.PARENT_PHONE=$("#ph").value.trim()||CONFIG.PARENT_PHONE;
     if($("#np").value.trim())S.cfg.PIN=$("#np").value.trim();save();beep("ok");$("#sv").textContent="✅ Сохранено"};
   $("#rs").onclick=()=>{if(confirm("Точно сбросить все уроки, блоки и мир?")){const c=S.cfg;S=def();S.cfg=c;save();home()}};
+  $("#exCopy").onclick=async()=>{const code=progressCode();$("#imCode").value=code;try{await navigator.clipboard.writeText(code);$("#exCopy").textContent="✅ Скопировано"}catch(e){$("#imCode").select()}};
+  $("#imLoad").onclick=()=>{
+    let d;try{d=JSON.parse(decodeURIComponent(escape(atob($("#imCode").value.trim()))))}catch(e){}
+    if(!d||typeof d.done!=="object"){beep("bad");$("#imCode").classList.add("shake");return}
+    if(!confirm("Заменить текущий прогресс на загруженный?"))return;
+    const c=S.cfg;S=Object.assign(def(),d);S.cfg=Object.assign({},d.cfg,c);
+    if(!Array.isArray(S.world)||S.world.length!==COLS*ROWS)S.world=Array(COLS*ROWS).fill(null);
+    save();beep("ok");home();
+  };
   pushPanel();
 }
+// Код прогресса: весь S в base64 (с поддержкой кириллицы), чтобы перенести на другой адрес или телефон.
+const progressCode = () => btoa(unescape(encodeURIComponent(JSON.stringify(S))));
 
 /* ============ НАПОМИНАНИЯ (push) ============
    Телефон подписывается здесь, а присылает напоминания GitHub по расписанию.
