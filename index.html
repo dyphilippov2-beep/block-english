@@ -10,6 +10,7 @@
 <meta name="theme-color" content="#1b1f2a">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Block English</title>
 <style>
 :root{--bg:#1b1f2a;--panel:#2a3042;--panel2:#353c53;--edge:#0d1017;--text:#f4f1e6;--muted:#a3a8bb;--green:#5fbf3f;--red:#e0503f;--gold:#f2c230;--blue:#4f8ce0}
@@ -374,7 +375,7 @@ function home(){
     <button class="btn blue" id="toWorld">🏰 Мой мир</button>
     <div class="gap"></div>
     <button class="btn gray small" id="toParent">👨 Родителям</button>
-    <div class="tip">🔊 Выключи беззвучный режим на iPhone, чтобы слышать слова.<br>Урок ≈ 10–15 минут. После урока отправь СМС папе.<br><span style="opacity:.6">версия 3 ${navigator.onLine===false?"· офлайн":""}</span></div>`;
+    <div class="tip">🔊 Выключи беззвучный режим на iPhone, чтобы слышать слова.<br>Урок ≈ 10–15 минут. После урока отправь СМС папе.<br><span style="opacity:.6">версия 4 ${navigator.onLine===false?"· офлайн":""}</span></div>`;
   app.querySelectorAll(".lesson").forEach(b=>b.onclick=()=>{
     const i=+b.dataset.l;
     if(!unlocked(i)){beep("bad");b.classList.add("shake");setTimeout(()=>b.classList.remove("shake"),400);return}
@@ -679,6 +680,11 @@ function parent(){
       <div class="gap"></div><button class="btn" id="sv">💾 Сохранить</button>
     </div><div class="gap"></div>
     <div class="panel">
+      <div style="font-weight:800">🔔 Напоминания об уроке</div>
+      <div style="color:var(--muted);font-size:14px;margin:6px 0 10px">Каждый день в 16:00 и 19:00 на этот телефон придёт напоминание. Включи на телефоне Никиты и на своём.</div>
+      <div id="pushBox"></div>
+    </div><div class="gap"></div>
+    <div class="panel">
       <div style="font-weight:800;margin-bottom:8px">Пройденные уроки</div>
       ${LESSONS.map((l,i)=>S.done[i]?`<div style="margin:4px 0">✅ ${i+1}. ${esc(l.t)} — ${S.done[i].score}/10, ${S.done[i].min} мин, ${S.done[i].date}${S.done[i].count>1?` (раз: ${S.done[i].count})`:""}</div>`:"").join("")||"<div style='color:var(--muted)'>Пока ни одного</div>"}
       <div class="gap"></div><button class="btn red small" id="rs">Сбросить весь прогресс</button>
@@ -688,6 +694,47 @@ function parent(){
   $("#sv").onclick=()=>{S.cfg.CHILD_NAME=$("#cn").value.trim()||CONFIG.CHILD_NAME;S.cfg.PARENT_PHONE=$("#ph").value.trim()||CONFIG.PARENT_PHONE;
     if($("#np").value.trim())S.cfg.PIN=$("#np").value.trim();save();beep("ok");$("#sv").textContent="✅ Сохранено"};
   $("#rs").onclick=()=>{if(confirm("Точно сбросить все уроки, блоки и мир?")){const c=S.cfg;S=def();S.cfg=c;save();home()}};
+  pushPanel();
+}
+
+/* ============ НАПОМИНАНИЯ (push) ============
+   Телефон подписывается здесь, а присылает напоминания GitHub по расписанию.
+   Код подписки нужно один раз добавить в reminders/subscriptions.txt. */
+const VAPID_PUBLIC_KEY = "BDAi5C8ne202Y3UocPtPGlVZJrcsLrXZrQOMjR2xxqvOz1vGuRZVD6Ndr5jeg5IsS_TdfF1zkUq6vT5E-rYghEI";
+const b64key = k => {const s=atob((k+"=".repeat((4-k.length%4)%4)).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(s,c=>c.charCodeAt(0))};
+const subCode = sub => btoa(JSON.stringify(sub));
+
+async function pushPanel(){
+  const box=$("#pushBox"); if(!box)return;
+  const standalone=navigator.standalone||matchMedia("(display-mode: standalone)").matches;
+  if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){
+    box.innerHTML=`<div class="answer" style="font-size:15px;font-weight:600">${standalone?"Этот телефон не поддерживает уведомления. Нужен iOS 16.4 или новее.":"Сначала добавь приложение на экран «Домой»: в Safari нажми «Поделиться» → «На экран „Домой“». Потом открой его с экрана и зайди сюда снова."}</div>`;
+    return;
+  }
+  const reg=await navigator.serviceWorker.ready;
+  const sub=await reg.pushManager.getSubscription();
+  if(sub&&Notification.permission==="granted"){
+    box.innerHTML=`<div style="font-weight:800;color:var(--green)">✅ Уведомления включены</div>
+      <label>Код этого телефона (добавь его в GitHub один раз)</label>
+      <input id="pc" readonly value="${esc(subCode(sub))}">
+      <div class="gap"></div><div class="row"><button class="btn small blue" id="pcCopy">📋 Скопировать</button><button class="btn small gray" id="pcTest">🔔 Проверить</button></div>`;
+    $("#pcCopy").onclick=async()=>{try{await navigator.clipboard.writeText(subCode(sub));$("#pcCopy").textContent="✅ Скопировано"}catch(e){$("#pc").select()}};
+    $("#pcTest").onclick=()=>reg.showNotification("📚 Block English",{body:"Так будет выглядеть напоминание об уроке",icon:"icon.png",tag:"lesson-reminder"});
+    return;
+  }
+  if(Notification.permission==="denied"){
+    box.innerHTML=`<div class="answer" style="font-size:15px;font-weight:600">Уведомления запрещены. Разреши их: Настройки iPhone → Уведомления → Block English.</div>`;
+    return;
+  }
+  box.innerHTML=`<button class="btn small gold" id="pushOn">🔔 Включить напоминания</button>`;
+  $("#pushOn").onclick=async()=>{
+    try{
+      if(await Notification.requestPermission()!=="granted")return pushPanel();
+      await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64key(VAPID_PUBLIC_KEY)});
+      beep("ok");
+    }catch(e){alert("Не получилось включить: "+e.message)}
+    pushPanel();
+  };
 }
 
 home();

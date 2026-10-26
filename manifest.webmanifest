@@ -1,0 +1,15 @@
+{
+  "name": "Block English",
+  "short_name": "Block English",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1b1f2a",
+  "theme_color": "#1b1f2a",
+  "lang": "ru",
+  "icons": [
+    {"src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}

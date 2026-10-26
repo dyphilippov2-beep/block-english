@@ -1,6 +1,6 @@
 // Block English — офлайн-режим.
 // С интернетом берёт свежую версию с сервера (и сохраняет её), без интернета — из памяти телефона.
-const CACHE = "blockenglish-v3";
+const CACHE = "blockenglish-v4";
 const FILES = ["./", "./index.html", "./icon.png"];
 
 self.addEventListener("install", e => {
@@ -28,5 +28,28 @@ self.addEventListener("fetch", e => {
         return res;
       })
       .catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match("./index.html")))
+  );
+});
+
+// Напоминания об уроке: push присылает GitHub по расписанию (reminders/push_remind.mjs).
+self.addEventListener("push", e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || "📚 Block English", {
+    body: d.body || "Пора пройти урок английского!",
+    icon: "icon.png",
+    badge: "icon.png",
+    tag: "lesson-reminder",
+    data: { url: d.url || "./" }
+  }));
+});
+
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+      const open = list.find(c => "focus" in c);
+      return open ? open.focus() : self.clients.openWindow(e.notification.data.url || "./");
+    })
   );
 });
