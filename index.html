@@ -482,7 +482,7 @@ function startLesson(i){
   L={i,si:0,pos:0,done:0,streak:0,mist:0,hits:0,start:Date.now(),earned:{},lock:false,
      stages:[
       {name:"Новые слова",type:"learn",q:w.map(x=>({k:"learn",w:x}))},
-      {name:"Слушай и выбирай",type:"quiz",q:noRepeat(shuf([...w,...w]).map(x=>({k:"listen",w:x})))},
+      {name:"Слушай и выбирай",type:"quiz",q:noRepeat(shuf(w).map(x=>({k:"listen",w:x})))},
       {name:"Что это?",type:"quiz",q:shuf(w).map(x=>({k:"pic",w:x}))},
       {name:"Собери слово",type:"quiz",q:shuf(w).map(x=>({k:"spell",w:x}))},
       {name:"Собери фразу",type:"quiz",q:shuf(LESSONS[i].s).map(s=>({k:"sent",s}))},
